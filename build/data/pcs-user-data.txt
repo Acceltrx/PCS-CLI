@@ -1,0 +1,9 @@
+0| 
+1| Operator
+2| Country
+3| MM/DD/YY
+4| Gender
+5| Height
+6| Weight
+7| 
+8| 1
