@@ -212,7 +212,7 @@ static inline int PCS_Boot_Protocol() {
             sprintf(welcomeMsg, "Identity Confirmed: User '%s' recognized on the Grid.", userHexID);
             wait_seconds(1.5);
             printf("\n%s\nWelcome %s.\n", welcomeMsg, username);
-            wait_seconds(0.2);
+            wait_seconds(0.5);
             printf("%s\nADVICE: Type 'pcs help' to view available command.%s\n", SUCCESS_C, MAIN_C);
         } else if (rectified == 2) {
             apply_theme();
