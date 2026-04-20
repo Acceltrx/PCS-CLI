@@ -1309,7 +1309,7 @@ static inline int PCS_Protocol() {
                         DataInput[strcspn(DataInput, "\n")] = '\0';
                         break;
                     case 3:
-                        printf("[===---] 3/6 >> Enter Date Of Birth (MM/DD/YY): ");
+                        printf("[===---] 3/6 >> Enter Date Of Birth (MM/DD/YYYY): ");
                         fgets(DataInput, sizeof(DataInput), stdin);
                         DataInput[strcspn(DataInput, "\n")] = '\0';
 
@@ -1317,18 +1317,18 @@ static inline int PCS_Protocol() {
                         int matches = sscanf(DataInput, "%d/%d/%d", &m, &d, &y);
 
                         if (matches == 3) {
-                            if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 99) {
-                                sprintf(DataInput, "%02d/%02d/%02d", m, d, y);
+                            if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 9999) {
+                                sprintf(DataInput, "%02d/%02d/%04d", m, d, y);
                                 reset = 1;
                                 break; 
                             } else {
-                                printf( "%s" "\aSYNTAX ERROR: Date values out of bounds (1-12/1-31/00-99).\n\n"  "%s", ERR_C, MAIN_C);
+                                printf( "%s" "\aSYNTAX ERROR: Date values out of bounds (1-12/1-31/00-9999).\n\n"  "%s", ERR_C, MAIN_C);
                                 reset = 2;
                             }
                         } else if (strstr(DataInput, "next") != NULL || strstr(DataInput, "prev") != NULL || strstr(DataInput, "exit") != NULL) {
                             break;
                         } else {
-                            printf( "%s" "\aSYNTAX ERROR: Invalid Bit-Stream. Use MM/DD/YY format.\n\n"  "%s", ERR_C, MAIN_C);
+                            printf( "%s" "\aSYNTAX ERROR: Invalid Bit-Stream. Use MM/DD/YYYY format.\n\n"  "%s", ERR_C, MAIN_C);
                             reset = 2;
                         }
                         break;
@@ -1723,7 +1723,7 @@ static inline int PCS_Protocol() {
 				    }
 
 				    fprintf(pT, "0| %s\n", userHexID);
-				    fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YY\n4| Gender\n5| Height\n6| Weight\n");
+				    fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
 				    fprintf(pT, "7| %s\n", timestamp);
 				    fprintf(pT, "8| 1\n");
 
@@ -1899,7 +1899,7 @@ static inline int PCS_Protocol() {
                         strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
                         fprintf(Path, "0| %s\n", userHexID);
-                        fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YY\n4| Gender\n5| Height\n6| Weight\n");
+                        fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
                         fprintf(Path, "7| %s\n", timestamp);
                         fprintf(Path, "8| 1\n");
                         
@@ -1918,7 +1918,7 @@ static inline int PCS_Protocol() {
                             strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
                             fprintf(Path, "0| %s\n", userHexID);
-                            fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YY\n4| Gender\n5| Height\n6| Weight\n");
+                            fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
                             fprintf(Path, "7| %s\n", timestamp);
                             fprintf(Path, "8| 1\n");
                             

@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🟢 ACCELX://PERSONAL COMMAND SYSTEM (PCS)
-**[VERSION 1.1.0] — CORE INITIALIZED**
+**[VERSION 1.1.1] — CORE INITIALIZED**
 
 </div>
 
@@ -23,7 +23,7 @@ Built for speed, reliability, and high-contrast terminal aesthetics. Designed by
 
 ---
 
-## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.1.0 | The Stability Protocol]
+## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.1.1 | The Stability Protocol]
 
 - **Grid Shielding (Buffer Overload Mitigation):** Implemented a 50-to-100-character input ceiling and automatic buffer flushing to prevent memory corruption and "Bit-Stream" loops.
 

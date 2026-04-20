@@ -163,7 +163,7 @@ static inline int PCS_Boot_Protocol() {
 			pT = fopen(tempPath, "w");
 
             fprintf(pT, "0| %s\n", userHexID);
-			fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YY\n4| Gender\n5| Height\n6| Weight\n");
+			fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
 			fprintf(pT, "7| %s\n", timestamp);
 			fprintf(pT, "8| 1\n");
 
