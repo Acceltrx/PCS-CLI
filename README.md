@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🟢 ACCELX://PERSONAL COMMAND SYSTEM (PCS)
-**[VERSION 1.1.1] — CORE INITIALIZED**
+**[VERSION 1.2.0] — CORE INITIALIZED**
 
 </div>
 
@@ -23,13 +23,11 @@ Built for speed, reliability, and high-contrast terminal aesthetics. Designed by
 
 ---
 
-## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.1.1 | The Stability Protocol]
+## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.2.0 | The Refactor & Personalization Update]
 
-- **Grid Shielding (Buffer Overload Mitigation):** Implemented a 50-to-100-character input ceiling and automatic buffer flushing to prevent memory corruption and "Bit-Stream" loops.
+- **Core Architecture:** Compacted logic across modules for faster execution and smaller binary size.
 
-- **Protocol Feedback:** Synchronized terminal audio-visual triggers; resolved an inconsistency where specific syntax errors failed to trigger the standard \a (alert) tone.
-
-- **Data Integrity:** Optimized file-handling architecture to ensure pcs-user-data.txt remains uncorrupted during high-frequency write operations.
+- **New Features:** Hex-Theme Engine: Full support for custom #RRGGBB themes via pcs-themes.txt.
 
 ---
 
@@ -54,7 +52,7 @@ Built for speed, reliability, and high-contrast terminal aesthetics. Designed by
 
 ## 🎨 THEMES
 
-| Theme            | Vibe                  | Key Colors              |
+| Theme            | Vibe                 | Key Colors               |
 |------------------|----------------------|--------------------------|
 | Tron             | Classic Grid         | Cyan / Neon Orange       |
 | Monolith         | Tactical Brutalism   | Deep Red / White         |
@@ -64,32 +62,22 @@ Built for speed, reliability, and high-contrast terminal aesthetics. Designed by
 | Void Ember       | Dying Star           | Deep Charcoal / Ember Orange |
 | Limitless Azure  | Hyper-Sky            | Electric Blue / White    |
 | Gothic Noir      | Digital Cathedral    | Wine Purple / Crimson    |
+| Custom Theme	   | Your Own Vibe!       | Your Own Colors!         |
 
 ---
 
-## 📊 DATA FORMAT
-
-```bash
-1| 1 | [!] | [LOW] | (PERSONAL) |
-|__________||___________________|
-   Tasks      Persistent Tasks
-
-- [!] = pending  
-- [+] = complete
-```
-
----
-
-## ⌨️ COMMANDS
+## ⌨️ Usage Examples
 
 ```bash
 pcs add todo "task" [PRIORITY] (CATEGORY)
-pcs see todo [FILTERS]
+pcs see todo [FILTERS (Optional: [PRIORITY] (CATEGORY) {STATUS})
 pcs repair
 
 Example:
 pcs add todo "Finish report" [HIGH] (WORK)
 pcs see todo [HIGH]
+
+Hint: Use 'pcs help' to show list of available commands
 ```
 
 ---
@@ -134,49 +122,11 @@ First Run
 
 ```bash
 📁 PCS-CLI-main
-├── 📂 assets/      # Icons & Resource Scripts
-├── 📂 build/       # Binary Output (.exe)
-│   └── 📂 data/    # Persistent Text Storage
-├── 📂 include/     # System Headers (.h)
-└── 📂 src/         # Core Logic (.c)
+├── 📂 assets/		# Icons & Resource Scripts
+├── 📂 build/		# Binary Output (.exe)
+│    └── 📂 data/	# Persistent Text Storage
+├── 📂 include/	# System Headers (.h)
+└── 📂 src/		# Core Logic (.c)
 ```
-
----
-
-## 📝 DESIGN NOTES
-
-- **Text-based storage for simplicity and transparency**
-
-- **Separate daily vs persistent systems**
-
-- **Repair system ensures zero manual setup**
-
-- **ANSI colors improve CLI readability**
-
----
-
-## 🛑 LIMITATIONS
-
-- **CLI only**
-
-- **No database (text-based storage)**
-
-- **Basic validation for corrupted entries**
-
----
-
-## 🧩 FUTURE WORK
-
-- **Sorting and search**
-
-- **Configurable themes**
-
-- **Stronger data validation**
-
----
-
-## 👤 AUTHOR
-
-Built as a systems-oriented C project focused on command design, persistence, and reliability.
 
 ---

@@ -1,0 +1,17 @@
+Set Theme
+0| 9
+
+Main Color
+hex1| #8a8a8a
+
+Accent Color
+hex2| #ffffff
+
+Success Color
+hex3| #47c977
+
+Error Color
+hex4| #b5002a
+
+Background Color
+hex5| #070707

@@ -12,7 +12,6 @@
 #else
 #include <unistd.h>
 #endif
-#include "pcs-colors.h"
 #include "pcs-themes.h"
 #include "pcs-version.h"
 
@@ -34,15 +33,15 @@ static inline int apply_theme() {
     int themeID;
     char linetheme[500];
 
-    char *filePath = DATA_PATH "pcs-user-data.txt";
+    char *filePath = DATA_PATH "pcs-themes.txt";
 
     FILE *t = fopen(filePath, "r");
     if (t == NULL) {
         printf("Error: Could not open file at %s\n", filePath);
     } else {
         while (fgets(linetheme, sizeof(linetheme), t) != NULL) {
-            if (strncmp(linetheme, "8|", 2) == 0) {
-                sscanf(linetheme, "8| %d", &themeID);
+            if (strncmp(linetheme, "0|", 2) == 0) {
+                sscanf(linetheme, "0| %d", &themeID);
                 break;
             }
         }
@@ -58,6 +57,34 @@ static inline int apply_theme() {
         case 6: theme = &void_ember_theme; break;
         case 7: theme = &limitless_azure_theme; break;
         case 8: theme = &gothic_noir_theme; break;
+        case 9: 
+            FILE *pR = fopen(DATA_PATH "pcs-themes.txt", "r");
+            char savedHex[500];
+
+            if (pR == NULL) {
+                printf("\a%sERROR: THEME SECTOR NOT FOUND.%s\n", ERR_C, MAIN_C);
+                theme = &tron_theme;
+                return 0;
+            }
+        
+            while (fgets(savedHex, sizeof(savedHex), pR) != NULL) {
+                int hexNum, r, g, b;
+                char *colorTargets[] = { custom_main, custom_accent, custom_success, custom_error, custom_bg };
+            
+                if (sscanf(savedHex, "hex%d| #%02x%02x%02x", &hexNum, &r, &g, &b) == 4) {
+                    if (hexNum >= 1 && hexNum <= 5) {
+                        if (hexNum == 5) {
+                            sprintf(colorTargets[hexNum-1], "\x1B[48;2;%d;%d;%dm\x1b[2J\x1b[H", r, g, b);
+                        } else {
+                            sprintf(colorTargets[hexNum-1], "\x1B[38;2;%d;%d;%dm", r, g, b);
+                        }
+                    }
+                }
+            }
+            fclose(pR);
+
+            theme = &user_configured_theme; 
+            break;
         default: theme = &tron_theme; break;
     }
 }
@@ -123,10 +150,8 @@ static inline void show_theme_menu() {
     printf("\n%s-----------------------[SYSTEM-ENVIRONMENT-OVERRIDE]----------------------- %s", MAIN_C, ACCENT_C);
     printf("\n===========================================================================\n");
 
-    // Theme Manifest Sector
     printf("\n%s [SECTOR 06: THEME MANIFEST]%s\n", ACCENT_C, MAIN_C);
     
-    // Display each theme with its ID and a small color preview
     printf("  ID: 1 | %-15s [DEFAULT]  >>  %sCYAN / NEON%s\n", "TRON", tron_theme.accent_color, MAIN_C);
     printf("  ID: 2 | %-15s            >>  %sCRIMSON / DARK%s\n", "MONOLITH", monolith_theme.accent_color, MAIN_C);
     printf("  ID: 3 | %-15s            >>  %sLIME / SOLAR%s\n", "SOLAR LIME", solar_lime_theme.accent_color, MAIN_C);
@@ -134,24 +159,37 @@ static inline void show_theme_menu() {
     printf("  ID: 5 | %-15s            >>  %sPLASMA / ELECTRIC%s\n", "QUANTUM PLASMA", quantum_plasma_theme.accent_color, MAIN_C);
     printf("  ID: 6 | %-15s            >>  %sEMBER / COAL%s\n", "VOID EMBER", void_ember_theme.accent_color, MAIN_C);
     printf("  ID: 7 | %-15s            >>  %sAZURE / LIGHT%s\n", "LIMITLESS AZURE", limitless_azure_theme.accent_color, MAIN_C);
-    printf("  ID: 8 | %-15s            >>  %sAUBERGINE / ROSE%s\n", "GOTHIC NOIR", gothic_noir_theme.accent_color, MAIN_C);
-    printf("  ID: 0 | [ABORT SYSTEM ENVIRONMENT OVERRIDE]  %s\n", ACCENT_C);
+    printf("  ID: 8 | %-15s            >>  %sAUBERGINE / ROSE%s\n\n", "GOTHIC NOIR", gothic_noir_theme.accent_color, MAIN_C);
+    printf("  %sID: 9 | [USER CONFIGURABLE SYSTEM ENVIRONMENT OVERRIDE]  %s\n\n", SUCCESS_C, ERR_C);
+    printf("  %sID: 0 | [ABORT SYSTEM ENVIRONMENT OVERRIDE]  %s\n", ERR_C, ACCENT_C);
 
     printf("\n%s >> Select target theme ID: %s", ACCENT_C, MAIN_C);
 }
 
+static inline void show_custom_theme_menu() {
+    printf("\n%s===========================================================================", ACCENT_C);
+    printf("\n%s-----------------------[SYSTEM-ENVIRONMENT-OVERRIDE]----------------------- %s", MAIN_C, ACCENT_C);
+    printf("\n===========================================================================\n");
+
+    printf("\n%s [SECTOR 06: THEME MANIFEST]%s\n", ACCENT_C, MAIN_C);
+    
+    printf("  ID: 1 | [LOAD]\n");
+    printf("  ID: 2 | [NEW]\n\n");
+    printf("  %sID: 0 | [ABORT SYSTEM ENVIRONMENT OVERRIDE]  %s\n", ERR_C, ERR_C);
+
+    printf("\n%s >> Select target action ID: %s", ACCENT_C, MAIN_C);
+}
+
 static inline void show_archives_menu() {
-					// Header
 					printf("\n%s===========================================================================", ACCENT_C);
 					printf("\n%s-------------------------[ARCHIVE-SECTOR-ACCESS]-------------------------- %s", MAIN_C, ACCENT_C);
 					printf("\n===========================================================================\n");
 
-					// Archive Selection Sector
 					printf("\n%s [SECTOR 04: DATA ARCHIVES]%s\n", ACCENT_C, MAIN_C);
 					
 					printf("  ID: 1 | %-15s >>  TASK ARCHIVES\n", MAIN_C);
 					printf("  ID: 2 | %-15s >>  LOG ARCHIVES\n\n", MAIN_C);
-                    printf("  ID: 0 | [ABORT ARCHIVE SECTOR ACTION]  %s\n", ACCENT_C);
+                    printf("  %sID: 0 | [ABORT ARCHIVE SECTOR ACTION]  %s\n", ERR_C, ACCENT_C);
 
 					printf("\n%s >> SELECT ARCHIVE ID: %s", ACCENT_C, MAIN_C);
 				}

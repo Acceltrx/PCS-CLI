@@ -1,7 +1,6 @@
 #ifndef PCS_BOOT_PRTCL_H
 #define PCS_BOOT_PRTCL_H
 
-#include "pcs-colors.h"
 #include "pcs-version.h"
 #include "pcs-ui.h"
 #include "pcs-themes.h"
@@ -87,15 +86,16 @@ static inline int PCS_Boot_Protocol() {
 
     //theme + user data
     char *filePath = DATA_PATH "pcs-user-data.txt";
+    char *themePath = DATA_PATH "pcs-themes.txt";
     char *tempPath = DATA_PATH "temp.txt";
 
-    FILE *t = fopen(filePath, "r");
+    FILE *t = fopen(themePath, "r");
     if (t == NULL) {
         printf("Error: Could not open file at %s\n", filePath);
     } else {
-        while (fgets(linetheme, sizeof(linetheme), t) != NULL) {
-            if (strncmp(linetheme, "8|", 2) == 0) {
-                sscanf(linetheme, "8| %d", &themeID);
+        while (fgets(line, sizeof(line), t) != NULL) {
+            if (strncmp(line, "0|", 2) == 0) {
+                sscanf(line, "0| %d", &themeID);
                 break;
             }
         }
@@ -111,6 +111,34 @@ static inline int PCS_Boot_Protocol() {
         case 6: theme = &void_ember_theme; break;
         case 7: theme = &limitless_azure_theme; break;
         case 8: theme = &gothic_noir_theme; break;
+        case 9: 
+            FILE *pR = fopen(DATA_PATH "pcs-themes.txt", "r");
+            char savedHex[500];
+
+            if (pR == NULL) {
+                printf("\a%sERROR: THEME SECTOR NOT FOUND.%s\n", ERR_C, MAIN_C);
+                theme = &tron_theme;
+                return 0;
+            }
+        
+            while (fgets(savedHex, sizeof(savedHex), pR) != NULL) {
+                int hexNum, r, g, b;
+                char *colorTargets[] = { custom_main, custom_accent, custom_success, custom_error, custom_bg };
+            
+                if (sscanf(savedHex, "hex%d| #%02x%02x%02x", &hexNum, &r, &g, &b) == 4) {
+                    if (hexNum >= 1 && hexNum <= 5) {
+                        if (hexNum == 5) {
+                            sprintf(colorTargets[hexNum-1], "\x1B[48;2;%d;%d;%dm\x1b[2J\x1b[H", r, g, b);
+                        } else {
+                            sprintf(colorTargets[hexNum-1], "\x1B[38;2;%d;%d;%dm", r, g, b);
+                        }
+                    }
+                }
+            }
+            fclose(pR);
+
+            theme = &user_configured_theme; 
+            break;
         default: theme = &tron_theme; break;
     }
 
@@ -165,7 +193,6 @@ static inline int PCS_Boot_Protocol() {
             fprintf(pT, "0| %s\n", userHexID);
 			fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
 			fprintf(pT, "7| %s\n", timestamp);
-			fprintf(pT, "8| 1\n");
 
 			while (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
 				int prefix = atoi(bufferread);
@@ -192,9 +219,9 @@ static inline int PCS_Boot_Protocol() {
     if (u == NULL) {
         printf("Error: Could not open file at %s\n", filePath);
     } else {
-        while (fgets(linetheme, sizeof(linetheme), u) != NULL) {
-            if (strncmp(linetheme, "1|", 2) == 0) {
-                sscanf(linetheme, "1| %s", username);
+        while (fgets(line, sizeof(line), u) != NULL) {
+            if (strncmp(line, "1|", 2) == 0) {
+                sscanf(line, "1| %s", username);
                 break;
             }
         }

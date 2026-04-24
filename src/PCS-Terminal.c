@@ -1,7 +1,7 @@
-#include "pcs-colors.h"
 #include "pcs-ui.h"
 #include "pcs-themes.h"
 #include "pcs-data-types.h"
+#include "pcs-user-config-theme.h"
 #include "pcs-boot-prtcl.h"
 #include "pcs-version.h"
 #include <stdio.h>
@@ -16,26 +16,31 @@
 #include <unistd.h>
 #endif
 
-static inline int PCS_Protocol() {
+int main() {
+    #ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+    #endif
+
+    while (1) {
         PCS_Boot_Protocol();
 
-        while (2) {
+        while (1) {
             printf("\n%sACCELX://SYSTEM/SECTOR_01>%s", ACCENT_C, MAIN_C);
-            fgets(text, sizeof(text), stdin);
-            text[strcspn(text, "\n")] = '\0';
+            fgets(userInput, sizeof(userInput), stdin);
+            userInput[strcspn(userInput, "\n")] = '\0';
 
-            if(strstr(text, addtaskID) != NULL) { //add task +++
-                char *start = strchr(text, '\"');
-                char *end = strrchr(text, '\"');
+            if(strstr(userInput, addtaskID) != NULL) { //add task 
+                char *start = strchr(userInput, '\"');
+                char *end = strrchr(userInput, '\"');
                 bool dataAnchor = false;
-                FILE *ptR = fopen(DATA_PATH "pcs-tasks.txt", "r");
+                FILE *pR = fopen(DATA_PATH "pcs-tasks.txt", "r");
                 
-                if (ptR != NULL) {
-                    int firstChar = fgetc(ptR);
+                if (pR != NULL) {
+                    int firstChar = fgetc(pR);
                     if (firstChar != EOF) {
                         dataAnchor = true;
                     }
-                    fclose(ptR); // Close it immediately after checking
+                    fclose(pR); // Close it immediately after checking
                 }
 
                 if (dataAnchor) {
@@ -67,15 +72,15 @@ static inline int PCS_Protocol() {
                     printf("%s\aERROR: Data stream returned 'NULL'.\n", ERR_C);
                     printf("%sADVICE: Execute 'pcs new task list' to establish a data-anchor.%s\n", SUCCESS_C, MAIN_C);
                 }
-            } else if (strstr(text, newtasklistID) != NULL) { //new task list 
-                char tasklistdate[100] = "";
-                printf(">> Input Temporal Coordinates for the new Cycle (MM/DD/YYYY): ");
-                fgets(tasklistdate, sizeof(tasklistdate), stdin);
-                tasklistdate[strcspn(tasklistdate, "\n")] = '\0';
+            } else if (strstr(userInput, newtasklistID) != NULL) { //new task list 
+                char tasklistDate[100] = "";
+                printf(" >> Input Temporal Coordinates for the new Cycle (MM/DD/YYYY): ");
+                fgets(tasklistDate, sizeof(tasklistDate), stdin);
+                tasklistDate[strcspn(tasklistDate, "\n")] = '\0';
 
                 int reset = 2;
                 int m, d, y;
-                        int matches = sscanf(tasklistdate, "%d/%d/%d", &m, &d, &y);
+                        int matches = sscanf(tasklistDate, "%d/%d/%d", &m, &d, &y);
 
                         if (matches == 3) {
                             if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 9999) {
@@ -86,24 +91,32 @@ static inline int PCS_Protocol() {
                             }
                         }
             
-                if (strcmp(tasklistdate, "cancel") == 0) {
+                if (strcmp(tasklistDate, "cancel") == 0) {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                } else if (strlen(tasklistdate) == 0) {
+                } else if (strlen(tasklistDate) == 0) {
                     printf( "%s" "\aTRACE ERROR: Temporal marker null. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 } else if (reset == 1) {
                     
                     FILE *pR = fopen(DATA_PATH "pcs-tasks.txt", "r");
                     FILE *pA = fopen(DATA_PATH "pcs-archive-tasks.txt", "a");
-                    char bufferread[500];
+
+                    if (pR == NULL || pA == NULL) {
+                        printf( "%s" "\aCRITICAL ERROR: Memory Sector Unreachable. Unable to establish a link to the task database.\n"  "%s", ERR_C, MAIN_C);
+                        if (pR) fclose(pR);
+                        if (pA) fclose(pA);
+                        continue; 
+                    }
+
+                    char bufferRead[500];
                     bool startPrinting = false;
 
-                    while (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
+                    while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
                         if (!startPrinting) {
                             startPrinting = true; 
                         }
 
                         if (startPrinting) {
-                            fprintf(pA, "%s", bufferread);
+                            fprintf(pA, "%s", bufferRead);
                         }
                     }
                     fprintf(pA, "\n");
@@ -118,41 +131,39 @@ static inline int PCS_Protocol() {
                 } else if (reset == 2) {
                     printf( "%s" "\aSYNTAX ERROR: Temporal marker invalid. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, seetasklistID) != NULL) { //see task list 
-                FILE *ptR = fopen(DATA_PATH "pcs-tasks.txt", "r");
+            } else if (strstr(userInput, seetasklistID) != NULL) { //see task list 
+                FILE *pR = fopen(DATA_PATH "pcs-tasks.txt", "r");
             
-                if (ptR == NULL) {
+                if (pR == NULL) {
                     printf("%s\aCRITICAL ERROR: Sector file missing.%s\n", ERR_C, MAIN_C);
                     continue;
                 }
 
-                char buffer1read[500];
+                char bufferRead[500];
                 char complete[10] = "[+]";
                 char pending[10] = "[!]";
-                char readcomplete[500];
 
-            // Check if the file is empty by trying to read the first character
-                int firstChar = fgetc(ptR);
+                int firstChar = fgetc(pR);
                 if (firstChar == EOF) {
                     printf("%s\aERROR: Data stream returned 'NULL'.\n", ERR_C);
                     printf("%sADVICE: Execute 'pcs new task list' to establish a data-anchor.%s\n", SUCCESS_C, MAIN_C);
                 } else {
-                    ungetc(firstChar, ptR); // Put the character back so the loop doesn't miss it
+                    ungetc(firstChar, pR);
                 
                     printf("\n%s=====[-ACTIVE-GRID-OBJECTIVES-]=====%s\n", ACCENT_C, MAIN_C);
                 
-                    while (fgets(buffer1read, sizeof(buffer1read), ptR) != NULL) {
-                        if (strstr(buffer1read, complete) != NULL) {
-                            printf("%s%s%s", SUCCESS_C, buffer1read, MAIN_C);
-                        } else if (strstr(buffer1read, pending) != NULL) {
-                            printf("%s%s%s", ERR_C, buffer1read, MAIN_C);
+                    while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
+                        if (strstr(bufferRead, complete) != NULL) {
+                            printf("%s%s%s", SUCCESS_C, bufferRead, MAIN_C);
+                        } else if (strstr(bufferRead, pending) != NULL) {
+                            printf("%s%s%s", ERR_C, bufferRead, MAIN_C);
                         } else {
-                            printf("%s", buffer1read);
+                            printf("%s", bufferRead);
                         }
                     }
                 }
-                fclose(ptR);
-            } else if (strstr(text, completetaskID) != NULL) { //task completion 
+                fclose(pR);
+            } else if (strstr(userInput, resolvetaskID) != NULL) { //task completion 
                 char *filePath = DATA_PATH "pcs-tasks.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -160,7 +171,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
                 bool dataAnchor = false;
 
                 if (pR == NULL || pT == NULL) {
@@ -178,7 +189,7 @@ static inline int PCS_Protocol() {
 
                 if (dataAnchor) {
                     char targetIDStr[10] = "";
-                    printf(">> Specify Target ID for Resolution Protocol: ");
+                    printf(" >> Specify Target ID for Resolution Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -202,10 +213,10 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
-                                        char *ptr = strstr(bufferread, "[!]");
+                                        char *ptr = strstr(bufferRead, "[!]");
                     
                                         if (ptr != NULL) {
                                             *(ptr + 1) = '+';
@@ -214,7 +225,7 @@ static inline int PCS_Protocol() {
                                             printf( "%s" "\aREDUNDANCY ALERT: Task #%s is already offline. Target state is already resolved.\n"  "%s", ERR_C, targetIDStr, MAIN_C);
                                         }
                                     } 
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 } 
         
                                 fclose(pR);
@@ -248,7 +259,7 @@ static inline int PCS_Protocol() {
                     fclose(pT);
                     remove(tempPath);
                 }
-            } else if (strstr(text, resettaskID) != NULL) { //task reset 
+            } else if (strstr(userInput, resettaskID) != NULL) { //task reset 
                 char *filePath = DATA_PATH "pcs-tasks.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -256,7 +267,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
                 bool dataAnchor = false;
 
                 if (pR == NULL || pT == NULL) {
@@ -274,7 +285,7 @@ static inline int PCS_Protocol() {
 
                 if (dataAnchor) {
                     char targetIDStr[10] = "";
-                    printf(">> Identify Target ID for Re-initialization Protocol: ");
+                    printf(" >> Identify Target ID for Re-initialization Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -298,10 +309,10 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
-                                        char *ptr = strstr(bufferread, "[+]");
+                                        char *ptr = strstr(bufferRead, "[+]");
 
                                         if (ptr != NULL) {
                                             *(ptr + 1) = '!';
@@ -310,7 +321,7 @@ static inline int PCS_Protocol() {
                                             printf( "%s" "\aLOGIC ERROR: Task #%s bit-state mismatch. Sector is either already active or pending initialization.\n"  "%s", ERR_C, targetIDStr, MAIN_C);
                                         }
                                     } 
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 } 
                                 fclose(pR);
                                 fclose(pT);
@@ -341,7 +352,7 @@ static inline int PCS_Protocol() {
                     fclose(pR);
                     remove(tempPath);
                 }
-            } else if (strstr(text, deletetaskID) != NULL) { //task delete 
+            } else if (strstr(userInput, deletetaskID) != NULL) { //task delete 
                 char *filePath = DATA_PATH "pcs-tasks.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -349,7 +360,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
                 bool dataAnchor = false;
 
                 if (pR == NULL || pT == NULL) {
@@ -359,15 +370,15 @@ static inline int PCS_Protocol() {
                     continue; 
                 }
 
-                if (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
-                    if (strncmp(bufferread, "0|", 2) != 0) {
-                        dataAnchor = true; 
-                    } 
+                int firstChar = fgetc(pR);
+                if (firstChar != EOF) {
+                    dataAnchor = true;
+                    ungetc(firstChar, pR);
                 }
 
                 if (dataAnchor) {
                     char targetIDStr[10] = "";
-                    printf(">> Identify Target ID for Data Derezz Protocol: ");
+                    printf(" >> Identify Target ID for Data Derezz Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -391,16 +402,13 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                            if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                            if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                 found = true;
-
-                                if (searchID != NULL) {
-                                    sprintf(bufferread, "\0", bufferread);  
-                                    printf( "%s" "PROTOCOL SUCCESS: Task #%s has successfully been derezzed.\n"  "%s", SUCCESS_C, targetIDStr, MAIN_C);
-                                }
+                                printf( "%s" "PROTOCOL SUCCESS: Task #%s has successfully been derezzed.\n"  "%s", SUCCESS_C, targetIDStr, MAIN_C);
+                                continue;
                             }
-                            fprintf(pT, "%s", bufferread);
+                            fprintf(pT, "%s", bufferRead);
                         }
                         fclose(pR);
                         fclose(pT);
@@ -430,15 +438,15 @@ static inline int PCS_Protocol() {
                     fclose(pR);
                     remove(tempPath);
                 }
-            } else if (strstr(text, newlogID) != NULL) { //new log 
-                char newlogdate[100] = "";
-                printf(">>Input Temporal Coordinates for New Cycle (MM/DD/YYYY): ");
-                fgets(newlogdate, sizeof(newlogdate), stdin);
-                newlogdate[strcspn(newlogdate, "\n")] = '\0';
+            } else if (strstr(userInput, newlogID) != NULL) { //new log 
+                char newlogDate[100] = "";
+                printf(" >> Input Temporal Coordinates for New Cycle (MM/DD/YYYY): ");
+                fgets(newlogDate, sizeof(newlogDate), stdin);
+                newlogDate[strcspn(newlogDate, "\n")] = '\0';
 
                 int reset = 2;
                 int m, d, y;
-                        int matches = sscanf(newlogdate, "%d/%d/%d", &m, &d, &y);
+                        int matches = sscanf(newlogDate, "%d/%d/%d", &m, &d, &y);
 
                         if (matches == 3) {
                             if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 9999) {
@@ -449,13 +457,21 @@ static inline int PCS_Protocol() {
                             }
                         }
             
-                if (strcmp(newlogdate, "cancel") == 0) {
+                if (strcmp(newlogDate, "cancel") == 0) {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                } else if (strlen(newlogdate) == 0) {
+                } else if (strlen(newlogDate) == 0) {
                     printf( "%s" "\aINPUT FAILURE: Temporal marker null. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 } else if (reset == 1) {
                     FILE *pR = fopen(DATA_PATH "pcs-logs.txt", "r");
                     FILE *pA = fopen(DATA_PATH "pcs-archive-logs.txt", "a");
+
+                    if (pR == NULL || pA == NULL) {
+                        printf( "%s" "\aCRITICAL ERROR: Memory Sector Unreachable. Unable to establish a link to the task database.\n"  "%s", ERR_C, MAIN_C);
+                        if (pR) fclose(pR);
+                        if (pA) fclose(pA);
+                        continue; 
+                    }
+
                     char bufferread[500];
                     bool startPrinting = false;
 
@@ -480,24 +496,24 @@ static inline int PCS_Protocol() {
                 } else if (reset == 2) {
                     printf( "%s" "\aSYNTAX ERROR: Temporal marker invalid. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, addlogID) != NULL) { //add log +++
-                FILE *pFa = fopen(DATA_PATH "pcs-logs.txt", "a");
-                FILE *pFr = fopen(DATA_PATH "pcs-logs.txt", "r");
-                char logcontent[150]; 
+            } else if (strstr(userInput, addlogID) != NULL) { //add log 
+                FILE *pA = fopen(DATA_PATH "pcs-logs.txt", "a");
+                FILE *pR = fopen(DATA_PATH "pcs-logs.txt", "r");
+                char logContent[150]; 
                 bool dataAnchor = false;
                     
-                if (pFr != NULL) {
-                    int firstChar = fgetc(pFr);
+                if (pR != NULL) {
+                    int firstChar = fgetc(pR);
                     if (firstChar != EOF) {
                         dataAnchor = true;
                     }
-                    fclose(pFr);
+                    fclose(pR);
                 }
 
                 if (dataAnchor) {
-                    printf(">> Input Thought-Stream for local buffer: ");
-                    fgets(logcontent, sizeof(logcontent), stdin);
-                    logcontent[strcspn(logcontent, "\n")] = '\0';
+                    printf(" >> Input Thought-Stream for local buffer: ");
+                    fgets(logContent, sizeof(logContent), stdin);
+                    logContent[strcspn(logContent, "\n")] = '\0';
 
                     time_t rawtime;
                     struct tm *timeinfo;
@@ -506,31 +522,31 @@ static inline int PCS_Protocol() {
                     timeinfo = localtime(&rawtime);
                     strftime(timeStr, sizeof(timeStr), "%H:%M", timeinfo);
 
-                    if (strlen(logcontent) == 0) {
+                    if (strlen(logContent) == 0) {
                         printf( "%s" "\aERROR: No data detected for commit. Re-initialize packet stream.\n"  "%s", ERR_C, MAIN_C);
-                        if (pFa) fclose(pFa);
-                    } else if (strcmp(logcontent, "cancel") == 0) {
+                        if (pA) fclose(pA);
+                    } else if (strcmp(logContent, "cancel") == 0) {
                         printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                        if (pFa) fclose(pFa);
+                        if (pA) fclose(pA);
                     } else {
-                        if (strlen(logcontent) > 100) {
+                        if (strlen(logContent) > 100) {
                             printf("%s\aSYNTAX ERROR: Objective too large. Data must be within 100 characters.\n%s", ERR_C, MAIN_C);
                             continue; 
                         }
                         
-                        if (pFa != NULL) {
+                        if (pA != NULL) {
                             logNumber += 1;
-                            fprintf(pFa, "%d| %s | %s | {~} |\n", logNumber, timeStr, logcontent);
+                            fprintf(pA, "%d| %s | %s | {~} |\n", logNumber, timeStr, logContent);
                             printf( "%s" "PROTOCOL SUCCESS: Memory packet integrated into AccelX Archive.\n"  "%s", SUCCESS_C, MAIN_C);
-                            fclose(pFa);
+                            fclose(pA);
                         }
                     }
                 } else {
                     printf("%s\aERROR: Data stream returned 'NULL'.\n", ERR_C);
                     printf("%sADVICE: Execute 'pcs new log' to establish a data-anchor.%s\n", SUCCESS_C, MAIN_C);
-                    if (pFa) fclose(pFa);
+                    if (pA) fclose(pA);
                 }
-            } else if (strstr(text, deletelogID) != NULL) { //delete log 
+            } else if (strstr(userInput, deletelogID) != NULL) { //delete log 
                 char *filePath = DATA_PATH "pcs-logs.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -538,7 +554,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
                 bool dataAnchor = false;
 
                 if (pR == NULL || pT == NULL) {
@@ -556,7 +572,7 @@ static inline int PCS_Protocol() {
 
                 if (dataAnchor) {
                     char targetIDStr[10] = "";
-                    printf(">>Identify Target ID for Data Derezz Protocol: ");
+                    printf(" >>Identify Target ID for Data Derezz Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -580,13 +596,13 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
                                         printf( "%s" "PROTOCOL SUCCESS: Data string #%s has successfully been derezzed.\n"  "%s", SUCCESS_C, targetIDStr, MAIN_C);
-                                        continue; // Skip writing this line to pT
+                                        continue;
                                     }
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 }
                                 fclose(pR);
                                 fclose(pT);
@@ -616,52 +632,52 @@ static inline int PCS_Protocol() {
                     fclose(pT);
                     remove(tempPath);
                 }
-            } else if (strstr(text, seelogID) != NULL) { //see log 
-                FILE *plR = fopen(DATA_PATH "pcs-logs.txt", "r");
-                char bufferread[500];
+            } else if (strstr(userInput, seelogID) != NULL) { //see log 
+                FILE *pR = fopen(DATA_PATH "pcs-logs.txt", "r");
+                char bufferRead[500];
                 bool startPrinting = false;
 
-                if (plR != NULL) {
-                    int firstChar = fgetc(plR);
+                if (pR != NULL) {
+                    int firstChar = fgetc(pR);
                     if (firstChar != EOF) {
                         startPrinting = true;
-                        ungetc(firstChar, plR); 
+                        ungetc(firstChar, pR); 
                     }
 
                     if (startPrinting) {
                         printf("\n"  "%s"  "=====[-ACTIVE-GRID-LOG-]====="  "%s\n", ACCENT_C, MAIN_C);
-                        while (fgets(bufferread, sizeof(bufferread), plR) != NULL) {
-                            printf("%s", bufferread);
+                        while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
+                            printf("%s", bufferRead);
                         }
                     } else {
                         printf("%s\aERROR: Data stream returned 'NULL'.\n", ERR_C);
                         printf("%sADVICE: Execute 'pcs new log' to establish a data-anchor.%s\n", SUCCESS_C, MAIN_C);
                     }
-                    fclose(plR);
+                    fclose(pR);
                 }
-            } else if (strstr(text, retrievetaskID) != NULL) { //retrieve task from archive 
-                char targettaskdate[100] = "";
+            } else if (strstr(userInput, retrievetaskID) != NULL) { //retrieve task from archive 
+                char targettaskDate[100] = "";
                 printf(" >>Input Temporal Coordinates for memory packet retrieval (MM/DD/YYYY): ");
-                fgets(targettaskdate, sizeof(targettaskdate), stdin);
-                targettaskdate[strcspn(targettaskdate, "\n")] = '\0';
+                fgets(targettaskDate, sizeof(targettaskDate), stdin);
+                targettaskDate[strcspn(targettaskDate, "\n")] = '\0';
 
                 int reset = 2;
                 int m, d, y;
-                        int matches = sscanf(targettaskdate, "%d/%d/%d", &m, &d, &y);
+                        int matches = sscanf(targettaskDate, "%d/%d/%d", &m, &d, &y);
 
                         if (matches == 3) {
                             if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 9999) {
                                 reset = 1;
-                                sprintf(targettaskdate, "%02d/%02d/%04d", m, d, y);
+                                sprintf(targettaskDate, "%02d/%02d/%04d", m, d, y);
                             } else {
                                 printf( "%s" "\aSYNTAX ERROR: Date values out of bounds (1-12/1-31/00-9999).\n"  "%s", ERR_C, MAIN_C);
                                 continue;
                             }
                         }
 
-                if (strcmp(targettaskdate, "cancel") == 0) {
+                if (strcmp(targettaskDate, "cancel") == 0) {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                } else if (strlen(targettaskdate) == 0) {
+                } else if (strlen(targettaskDate) == 0) {
                     printf( "%s" "\aINPUT FAILURE: Temporal marker null. Re-input MM/DD/YYYY for memory packet retrieval.\n"  "%s", ERR_C, MAIN_C);
                 } else if (reset == 1) {
                     FILE *pA = fopen(DATA_PATH "pcs-archive-tasks.txt", "r");
@@ -674,11 +690,11 @@ static inline int PCS_Protocol() {
                         bool packetFinished = false;
                         char complete[10] = "[+]";
                         char pending[10] = "[!]";
-                        char readcomplete[500];
+                        char readComplete[500];
 
                         while (fgets(bufferread, sizeof(bufferread), pA) != NULL) {
                             if (!foundDate) {
-                                if (strstr(bufferread, targettaskdate) != NULL) {
+                                if (strstr(bufferread, targettaskDate) != NULL) {
                                     foundDate = true;
                                     printf("\n"  "%s"  "=====[-ACCELX-ARCHIVE-STREAM-]====="  "%s" "\n", ACCENT_C, MAIN_C);
                                     printf( "%s" "%s", MAIN_C, bufferread);
@@ -689,19 +705,19 @@ static inline int PCS_Protocol() {
                                     break; 
                                 }
                                 if (strstr(bufferread, complete) != NULL) {
-                                    sprintf(readcomplete,  "%s" "%s" "%s", SUCCESS_C, bufferread, MAIN_C);
-                                    printf("%s", readcomplete);
+                                    sprintf(readComplete,  "%s" "%s" "%s", SUCCESS_C, bufferread, MAIN_C);
+                                    printf("%s", readComplete);
                                 } else if (strstr(bufferread, pending) != NULL) {
-                                    sprintf(readcomplete,  "%s" "%s" "%s", ERR_C, bufferread, MAIN_C);
-                                    printf("%s", readcomplete);
+                                    sprintf(readComplete,  "%s" "%s" "%s", ERR_C, bufferread, MAIN_C);
+                                    printf("%s", readComplete);
                                 } else {
-                                    printf("%s", readcomplete);
+                                    printf("%s", readComplete);
                                 }
                             }
                         }
 
                         if (!foundDate) {
-                            printf( "%s" "\aERROR: No memory packets found for coordinates: %s\n"  "%s", ERR_C, targettaskdate, MAIN_C);
+                            printf( "%s" "\aERROR: No memory packets found for coordinates: %s\n"  "%s", ERR_C, targettaskDate, MAIN_C);
                         } else if (packetFinished || feof(pA)) {
                             printf( "%s"  "======[-END-OF-PACKET-STREAM-]=====\n"  "%s", ACCENT_C, MAIN_C);
                         }
@@ -710,29 +726,29 @@ static inline int PCS_Protocol() {
                 } else if (reset == 2) {
                     printf( "%s" "\aSYNTAX ERROR: Temporal marker invalid. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, retrievelogID) != NULL) { //retrieve log from archive 
-                char targetlogdate[100] = "";
-                printf(">> Input Temporal Coordinates for memory packet retrieval (MM/DD/YYYY): ");
-                fgets(targetlogdate, sizeof(targetlogdate), stdin);
-                targetlogdate[strcspn(targetlogdate, "\n")] = '\0';
+            } else if (strstr(userInput, retrievelogID) != NULL) { //retrieve log from archive 
+                char targetlogDate[100] = "";
+                printf(" >> Input Temporal Coordinates for memory packet retrieval (MM/DD/YYYY): ");
+                fgets(targetlogDate, sizeof(targetlogDate), stdin);
+                targetlogDate[strcspn(targetlogDate, "\n")] = '\0';
 
                 int reset = 2;
                 int m, d, y;
-                        int matches = sscanf(targetlogdate, "%d/%d/%d", &m, &d, &y);
+                        int matches = sscanf(targetlogDate, "%d/%d/%d", &m, &d, &y);
 
                         if (matches == 3) {
                             if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 0 && y <= 9999) {
                                 reset = 1;
-                                sprintf(targetlogdate, "%02d/%02d/%04d", m, d, y);
+                                sprintf(targetlogDate, "%02d/%02d/%04d", m, d, y);
                             } else {
                                 printf( "%s" "\aSYNTAX ERROR: Date values out of bounds (1-12/1-31/00-9999).\n"  "%s", ERR_C, MAIN_C);
                                 continue;
                             }
                         }
 
-                if (strcmp(targetlogdate, "cancel") == 0) {
+                if (strcmp(targetlogDate, "cancel") == 0) {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                } else if (strlen(targetlogdate) == 0) {
+                } else if (strlen(targetlogDate) == 0) {
                     printf( "%s" "\aINPUT FAILURE: Temporal marker null. Re-input MM/DD/YYYY for memory packet retrieval.\n"  "%s", ERR_C, MAIN_C);
                 } else if (reset == 1) {
                     FILE *pA = fopen(DATA_PATH "pcs-archive-logs.txt", "r");
@@ -746,7 +762,7 @@ static inline int PCS_Protocol() {
 
                         while (fgets(bufferread, sizeof(bufferread), pA) != NULL) {
                             if (!foundDate) {
-                                if (strstr(bufferread, targetlogdate) != NULL) {
+                                if (strstr(bufferread, targetlogDate) != NULL) {
                                     foundDate = true;
                                     printf("\n"  "%s"  "=====[-ACCELX-ARCHIVE-STREAM-]====="  "%s" "\n", ACCENT_C, MAIN_C);
                                     printf( "%s" "%s", MAIN_C, bufferread);
@@ -762,7 +778,7 @@ static inline int PCS_Protocol() {
                         }
 
                         if (!foundDate) {
-                            printf( "%s" "\aERROR: No memory packets found for coordinates: %s\n"  "%s", ERR_C, targetlogdate, MAIN_C);
+                            printf( "%s" "\aERROR: No memory packets found for coordinates: %s\n"  "%s", ERR_C, targetlogDate, MAIN_C);
                         } else if (packetFinished || feof(pA)) {
                             printf( "%s"  "======[-END-OF-PACKET-STREAM-]=====\n"  "%s", ACCENT_C, MAIN_C);
                         }
@@ -771,32 +787,32 @@ static inline int PCS_Protocol() {
                 } else if (reset == 2) {
                     printf( "%s" "\aSYNTAX ERROR: Temporal marker invalid. Re-input MM/DD/YYYY to synchronize local clock.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, addtodoID) != NULL) { //add todo +++
-                char *starttask = strchr(text, '\"');
-                char *endtask = strrchr(text, '\"');
-                char *startprio = strchr(text, '[');
-                char *endprio = strchr(text, ']');
-                char *startcat = strchr(text, '(');
-                char *endcat = strrchr(text, ')');
+            } else if (strstr(userInput, addtodoID) != NULL) { //add todo 
+                char *startTask = strchr(userInput, '\"');
+                char *endTask = strrchr(userInput, '\"');
+                char *startPrio = strchr(userInput, '[');
+                char *endPrio = strchr(userInput, ']');
+                char *startCat = strchr(userInput, '(');
+                char *endCat = strrchr(userInput, ')');
 
-                if (starttask != NULL && endtask != NULL && starttask != endtask) {
+                if (startTask != NULL && endTask != NULL && startTask != endTask) {
                     FILE *pA = fopen(DATA_PATH "pcs-todo.txt", "a");
                     char taskName[150]; 
                     char prioType[20]; 
                     char catType[20]; 
-                    int tasklength = endtask - starttask - 1;
+                    int taskLength = endTask - startTask - 1;
 
-                    if (tasklength > 100) {
+                    if (taskLength > 100) {
                         printf("%s\aSYNTAX ERROR: Objective too large. Data must be within 100 characters.\n%s", ERR_C, MAIN_C);
                         continue; 
                     }
 
-                    strncpy(taskName, starttask + 1, tasklength);
-                    taskName[tasklength] = '\0';
+                    strncpy(taskName, startTask + 1, taskLength);
+                    taskName[taskLength] = '\0';
                     
-                    if(startprio != NULL && endprio != NULL && startprio != endprio) {
-                        int priolength = endprio - startprio - 1;
-                        strncpy(prioType, startprio + 1, priolength);
+                    if(startPrio != NULL && endPrio != NULL && startPrio != endPrio) {
+                        int priolength = endPrio - startPrio - 1;
+                        strncpy(prioType, startPrio + 1, priolength);
                         if (strstr(prioType, tpLow) != NULL || strstr(prioType, tpMedium) != NULL || strstr(prioType, tpHigh) != NULL || strstr(prioType, tpUrgent) != NULL) {
                             prioType[priolength] = '\0';
                             to_uppercase(prioType);
@@ -806,16 +822,16 @@ static inline int PCS_Protocol() {
                             printf( "%s" "Advise: Use 'urgent', 'high', 'medium', or 'low'.\n"  "%s", SUCCESS_C, MAIN_C);
                             continue;
                         }
-                    } else if(startprio == NULL || endprio == NULL) {
+                    } else if(startPrio == NULL || endPrio == NULL) {
                         int NULLpriolength = sizeof(tpMedium);
                         strncpy(prioType, tpMedium, NULLpriolength);
                         prioType[NULLpriolength] = '\0';
                         to_uppercase(prioType);
                     }
 
-                    if(startcat != NULL && endcat != NULL && startcat != endcat) {
-                        int catlength = endcat - startcat - 1;
-                        strncpy(catType, startcat + 1, catlength);
+                    if(startCat != NULL && endCat != NULL && startCat != endCat) {
+                        int catlength = endCat - startCat - 1;
+                        strncpy(catType, startCat + 1, catlength);
                         if (strstr(catType, tcPersonal) != NULL || strstr(catType, tcWork) != NULL || strstr(catType, tcFitness) != NULL || strstr(catType, tcSchool) != NULL) {
                             catType[catlength] = '\0';
                             to_uppercase(catType);
@@ -825,7 +841,7 @@ static inline int PCS_Protocol() {
                             printf( "%s" "Advise: Use 'personal', 'work', 'school', or 'fitness'.\n"  "%s", SUCCESS_C, MAIN_C);
                             continue;
                         }
-                    } else if(startcat == NULL || endcat == NULL) {
+                    } else if(startCat == NULL || endCat == NULL) {
                         int NULLcatlength = sizeof(tcPersonal);
                         strncpy(catType, tcPersonal, NULLcatlength);
                         catType[NULLcatlength] = '\0';
@@ -839,12 +855,9 @@ static inline int PCS_Protocol() {
                 } else {
                     printf( "%s" "\aSYNTAX ERROR: Objective string missing. Encapsulate data in quotes for Grid compilation. (Example: pcs add todo \"objective\" [category] (priority))\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, seetodoID) != NULL) { //see todo 
+            } else if (strstr(userInput, seetodoID) != NULL) { //see todo 
                 FILE *ptR = fopen(DATA_PATH "pcs-todo.txt", "r");
-                char buffer1read[500];                                  
-                bool start1Printing = false;
-                char complete[10] = "[+]";
-                char pending[10] = "[!]";
+                char bufferRead[500];                                  
                 char Work[20] = "WORK";
                 char School[20] = "SCHOOL";
                 char Fitness[20] = "FITNESS";
@@ -853,14 +866,14 @@ static inline int PCS_Protocol() {
                 char Medium[20] = "MEDIUM";
                 char High[20] = "HIGH";
                 char Urgent[20] = "URGENT";
-                char readcomplete[500];
+                char readComplete[500];
 
-                char *startprio = strchr(text, '[');
-                char *endprio = strchr(text, ']');
-                char *startcat = strchr(text, '(');
-                char *endcat = strrchr(text, ')');
-                char *startstat =  strrchr(text, '{');
-                char *endstat = strrchr(text, '}');
+                char *startprio = strchr(userInput, '[');
+                char *endprio = strchr(userInput, ']');
+                char *startcat = strchr(userInput, '(');
+                char *endcat = strrchr(userInput, ')');
+                char *startstat =  strrchr(userInput, '{');
+                char *endstat = strrchr(userInput, '}');
 
                 char prioType[20]; 
                 char catType[20]; 
@@ -924,10 +937,10 @@ static inline int PCS_Protocol() {
                 } else {
                     int foundCount = 0;
                     
-                    while (fgets(buffer1read, sizeof(buffer1read), ptR) != NULL) {
-                        bool passPrio = (startprio == NULL) || (strstr(buffer1read, prioTypeformat) != NULL);
-                        bool passCat  = (startcat == NULL)  || (strstr(buffer1read, catTypeformat) != NULL);
-                        bool passStat = (startstat == NULL) || (strstr(buffer1read, statTypeformat) != NULL);
+                    while (fgets(bufferRead, sizeof(bufferRead), ptR) != NULL) {
+                        bool passPrio = (startprio == NULL) || (strstr(bufferRead, prioTypeformat) != NULL);
+                        bool passCat  = (startcat == NULL)  || (strstr(bufferRead, catTypeformat) != NULL);
+                        bool passStat = (startstat == NULL) || (strstr(bufferRead, statTypeformat) != NULL);
 
                         if (passPrio && passCat && passStat) {
                             
@@ -937,13 +950,13 @@ static inline int PCS_Protocol() {
                             foundCount++;
                             const char* colorCode = theme->main_color;
 
-                            if (strstr(buffer1read, "[+]"))         colorCode = SUCCESS_C;
-                            else if (strstr(buffer1read, "URGENT")) colorCode = COLOR_STATUS_URGENT;
-                            else if (strstr(buffer1read, "HIGH"))   colorCode = COLOR_STATUS_HIGH;
-                            else if (strstr(buffer1read, "MEDIUM")) colorCode = COLOR_STATUS_MEDIUM;
-                            else if (strstr(buffer1read, "LOW"))    colorCode = COLOR_STATUS_LOW;
+                            if (strstr(bufferRead, "[+]"))         colorCode = SUCCESS_C;
+                            else if (strstr(bufferRead, "URGENT")) colorCode = COLOR_STATUS_URGENT;
+                            else if (strstr(bufferRead, "HIGH"))   colorCode = COLOR_STATUS_HIGH;
+                            else if (strstr(bufferRead, "MEDIUM")) colorCode = COLOR_STATUS_MEDIUM;
+                            else if (strstr(bufferRead, "LOW"))    colorCode = COLOR_STATUS_LOW;
 
-                            printf("%s%s"  "%s", colorCode, buffer1read, MAIN_C);
+                            printf("%s%s"  "%s", colorCode, bufferRead, MAIN_C);
                         }
                     }
 
@@ -954,7 +967,7 @@ static inline int PCS_Protocol() {
                 strncpy(prioType, resetnull, sizeof(resetnull));
                 strncpy(catType, resetnull, sizeof(resetnull));
                 fclose(ptR);
-            } else if (strstr(text, completetodoID) != NULL) { //todo completion 
+            } else if (strstr(userInput, resolvetodoID) != NULL) { //todo completion 
                 char *filePath = DATA_PATH "pcs-todo.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -962,7 +975,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
 
                 if (pR == NULL || pT == NULL) {
                     printf( "%s" "\aCRITICAL ERROR: Memory Sector Unreachable. Unable to establish a link to the task database.\n"  "%s", ERR_C, MAIN_C);
@@ -984,7 +997,7 @@ static inline int PCS_Protocol() {
                     remove(tempPath);
                 } else {
                     char targetIDStr[10] = "";
-                    printf(">> Specify Target ID for Resolution Protocol: ");
+                    printf(" >> Specify Target ID for Resolution Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -1008,10 +1021,10 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
-                                        char *ptr = strstr(bufferread, "[!]");
+                                        char *ptr = strstr(bufferRead, "[!]");
 
                                         if (ptr != NULL) {
                                             *(ptr + 1) = '+';
@@ -1020,7 +1033,7 @@ static inline int PCS_Protocol() {
                                             printf( "%s" "\aREDUNDANCY ALERT: Persistent Task #%s is already offline. Target state is already resolved.\n"  "%s", ERR_C, targetIDStr, MAIN_C);
                                         }
                                     } 
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 } 
 
                                 fclose(pR);
@@ -1048,7 +1061,7 @@ static inline int PCS_Protocol() {
                         }
                     }
                 }
-            } else if (strstr(text, resettodoID) != NULL) { //todo reset 
+            } else if (strstr(userInput, resettodoID) != NULL) { //todo reset 
                 char *filePath = DATA_PATH "pcs-todo.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -1056,7 +1069,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
 
                 if (pR == NULL || pT == NULL) {
                     printf( "%s" "\aCRITICAL ERROR: AccelX Sector Unreachable. Unable to establish a handshake with the task database.\n"  "%s", ERR_C, MAIN_C);
@@ -1078,7 +1091,7 @@ static inline int PCS_Protocol() {
                     remove(tempPath);
                 } else {
                     char targetIDStr[10] = "";
-                    printf(">> Identify Target ID for Re-initialization Protocol: ");
+                    printf(" >> Identify Target ID for Re-initialization Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -1102,10 +1115,10 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
-                                        char *ptr = strstr(bufferread, "[+]");
+                                        char *ptr = strstr(bufferRead, "[+]");
 
                                         if (ptr != NULL) {
                                             *(ptr + 1) = '!'; // Flips the bit back to active status
@@ -1114,7 +1127,7 @@ static inline int PCS_Protocol() {
                                             printf( "%s" "\aLOGIC ERROR: Persistent Task #%s bit-state mismatch. Sector is either already active or pending initialization.\n"  "%s", ERR_C, targetIDStr, MAIN_C);
                                         }
                                     } 
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 } 
                                 
                                 fclose(pR);
@@ -1142,7 +1155,7 @@ static inline int PCS_Protocol() {
                         }
                     }
                 }
-            } else if (strstr(text, deletetodoID) != NULL) { //todo delete 
+            } else if (strstr(userInput, deletetodoID) != NULL) { //todo delete 
                 char *filePath = DATA_PATH "pcs-todo.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
@@ -1150,7 +1163,7 @@ static inline int PCS_Protocol() {
                 FILE *pT = fopen(tempPath, "w");
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
 
                 if (pR == NULL || pT == NULL) {
                     printf( "%s" "\aCRITICAL ERROR: AccelX Sector Unreachable. Unable to establish a handshake with the task database.\n"  "%s", ERR_C, MAIN_C);
@@ -1172,7 +1185,7 @@ static inline int PCS_Protocol() {
                     remove(tempPath);
                 } else {
                     char targetIDStr[10] = "";
-                    printf(">> Identify Target ID for Data Derezz Protocol: ");
+                    printf(" >> Identify Target ID for Data Derezz Protocol: ");
                     fgets(targetIDStr, sizeof(targetIDStr), stdin);
                     targetIDStr[strcspn(targetIDStr, "\n")] = '\0';
 
@@ -1196,14 +1209,14 @@ static inline int PCS_Protocol() {
 
                         if (matches1 == 1) {
                             if (i >= 1 && i <= 99999999) {
-                                while (fgets(bufferread, sizeof(bufferread), pR) != NULL) { 
+                                while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) { 
                                     // Logic: If ID matches, we mark as found and SKIP the fprintf to the temp file
-                                    if (!found && strstr(bufferread, searchID) == bufferread && strcmp(targetIDStr, "0") != 0) {
+                                    if (!found && strstr(bufferRead, searchID) == bufferRead && strcmp(targetIDStr, "0") != 0) {
                                         found = true;
                                         printf( "%s" "PROTOCOL SUCCESS: Persistent task #%s has successfully been derezzed.\n"  "%s", SUCCESS_C, targetIDStr, MAIN_C);
                                         continue; 
                                     }
-                                    fprintf(pT, "%s", bufferread);
+                                    fprintf(pT, "%s", bufferRead);
                                 }
                                 
                                 fclose(pR);
@@ -1231,20 +1244,16 @@ static inline int PCS_Protocol() {
                         }
                     }
                 }
-            } else if (strstr(text, purgetodoID) != NULL) { //purge todo 
+            } else if (strstr(userInput, purgetodoID) != NULL) { //purge todo 
                 char *filePath = DATA_PATH "pcs-todo.txt";
 
-                FILE *pR = fopen(filePath, "w");
-
-                char YorN[10] = "";
-                char blankbuffer[] = "";
+                char blankBuffer[] = "";
                 printf("%s\aAre you sure you want to commit this action? This cannot be undone. Y/N: ", ERR_C);
-                fgets(YorN, sizeof(YorN), stdin);
-                YorN[strcspn(YorN, "\n")] = '\0';
+                char confirm;
+                scanf(" %c", &confirm);
 
-                if (strstr(YorN, "Y") != NULL) {
-                    sprintf(blankbuffer, "\0", blankbuffer); 
-                    fprintf(pR, "%s", blankbuffer);
+                if (confirm == 'Y' || confirm == 'y') {
+                    FILE *pR = fopen(filePath, "w");
                     fclose(pR);
 
                     printf( "%s" "\nSYSTEM MAINTENANCE: Executing Sector Purge"  "%s", ERR_C, MAIN_C);
@@ -1256,19 +1265,18 @@ static inline int PCS_Protocol() {
                     printf( "%s" ".\n"  "%s", ERR_C, MAIN_C);
                     wait_seconds(0.8);
 
-                    printf( "%s"">>> DATA STREAM CLEARED: 0x00h bits returned to the Grid.\n"  "%s", SUCCESS_C, MAIN_C);
+                    printf( "%s"" >>> DATA STREAM CLEARED: 0x00h bits returned to the Grid.\n"  "%s", SUCCESS_C, MAIN_C);
                     wait_seconds(0.8);
                     printf( "%s" "\nPROTOCOL COMPLETE: Todo data stream has been fully de-materialized.\n"  "%s", SUCCESS_C, MAIN_C);
                 } else {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
-                    fclose(pR);
                 }
-            } else if (strstr(text, edituserdataID) != NULL) { //edit user data +++
+            } else if (strstr(userInput, edituserdataID) != NULL) { //edit user data 
                 char *filePath = DATA_PATH "pcs-user-data.txt";
                 char *tempPath = DATA_PATH "temp.txt";
 
                 bool found = false;
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
                 int page = 1;
 
                 char targetIDStr[10] = "";
@@ -1281,7 +1289,6 @@ static inline int PCS_Protocol() {
 
                 if (datafile == NULL) {
                     printf("%s\aCRITICAL ERROR: AccelX Sector Unreachable. Unable to establish a handshake with the task database.\n", ERR_C);
-                    fclose(datafile);
                     continue;
                 }
                 fseek(datafile, 0, SEEK_END);
@@ -1292,10 +1299,9 @@ static inline int PCS_Protocol() {
                 } else {
                     fclose(datafile); 
                 }
-                rewind(datafile);
 
                 while(1) {
-                    int reset = 1; //if reset = 1 then continue ; if reset = 2 then reset
+                    int reset = 1; 
                     
                     switch(page) {
                     case 1:
@@ -1400,17 +1406,17 @@ static inline int PCS_Protocol() {
                             struct tm *t = localtime(&now);
                             strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t);
             
-                            sprintf(searchID, "7|");
+                            strcpy(searchID, "7|");
 
                             FILE *pR2 = fopen(filePath, "r");
                             FILE *pT2 = fopen(tempPath, "w");
 
                             if (pR2 != NULL && pT2 != NULL) {
-                                while (fgets(bufferread, sizeof(bufferread), pR2) != NULL) {
-                                    if (strstr(bufferread, searchID) == bufferread) {
+                                while (fgets(bufferRead, sizeof(bufferRead), pR2) != NULL) {
+                                    if (strstr(bufferRead, searchID) == bufferRead) {
                                         fprintf(pT2, "7| %s\n", timestamp);
                                     } else {
-                                        fprintf(pT2, "%s", bufferread);
+                                        fprintf(pT2, "%s", bufferRead);
                                     }
                                 }
                                 fclose(pR2); 
@@ -1436,9 +1442,9 @@ static inline int PCS_Protocol() {
                         char currentDiskValue[100] = "";
                         FILE *pCheck = fopen(filePath, "r");
                         if (pCheck) {
-                            while (fgets(bufferread, sizeof(bufferread), pCheck)) {
-                                if (strstr(bufferread, searchID) == bufferread) {
-                                    char *ptr = strchr(bufferread, '|');
+                            while (fgets(bufferRead, sizeof(bufferRead), pCheck)) {
+                                if (strstr(bufferRead, searchID) == bufferRead) {
+                                    char *ptr = strchr(bufferRead, '|');
                                     if (ptr) {
                                         ptr += 2; // Skip "| "
                                         strcpy(currentDiskValue, ptr);
@@ -1462,19 +1468,19 @@ static inline int PCS_Protocol() {
                         }
 
                         if (page > 1) {
-                            DataInput[sizeof(DataInput)] = '\0';
+                            DataInput[sizeof(DataInput) - 1] = '\0';
                             to_uppercase(DataInput);
                             for (int i = 1; DataInput[i] != '\0'; i++) {
                                 DataInput[i] = tolower((unsigned char)DataInput[i]);
                             }
                         } 
                         
-                        while (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
-                            if (strstr(bufferread, searchID) == bufferread) {
+                        while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
+                            if (strstr(bufferRead, searchID) == bufferRead) {
                                 found = true;
                                 fprintf(pT, "%d| %s\n", page, DataInput);
                             } else {
-                                fprintf(pT, "%s", bufferread);
+                                fprintf(pT, "%s", bufferRead);
                             }           
                         }
 
@@ -1508,11 +1514,11 @@ static inline int PCS_Protocol() {
                                 FILE *pT2 = fopen(tempPath, "w");
 
                                 if (pR2 != NULL && pT2 != NULL) {
-                                    while (fgets(bufferread, sizeof(bufferread), pR2) != NULL) {
-                                        if (strstr(bufferread, searchID) == bufferread) {
+                                    while (fgets(bufferRead, sizeof(bufferRead), pR2) != NULL) {
+                                        if (strstr(bufferRead, searchID) == bufferRead) {
                                             fprintf(pT2, "7| %s\n", timestamp);
                                         } else {
-                                            fprintf(pT2, "%s", bufferread);
+                                            fprintf(pT2, "%s", bufferRead);
                                         }
                                     }
                                     fclose(pR2); 
@@ -1539,21 +1545,21 @@ static inline int PCS_Protocol() {
                         page = 6;
                     }
                 }
-            } else if (strstr(text, seeuserdataID) != NULL) { //see user data 
-                FILE *datafile = fopen(DATA_PATH "pcs-user-data.txt", "r");
-                if (datafile == NULL) {
+            } else if (strstr(userInput, seeuserdataID) != NULL) { //see user data 
+                FILE *pR = fopen(DATA_PATH "pcs-user-data.txt", "r");
+                if (pR == NULL) {
                     printf("%s\aCRITICAL ERROR: AccelX Sector Unreachable. Unable to establish a handshake with the task database.\n", ERR_C);
-                    fclose(datafile);
+                    fclose(pR);
                     continue;
                 }
                 
-                fseek(datafile, 0, SEEK_END);
-                if (ftell(datafile) == 0) {
+                fseek(pR, 0, SEEK_END);
+                if (ftell(pR) == 0) {
                     printf("%s\aTRACE FAILURE: User data sector returned 'NULL' in the Grid database.\n", ERR_C);
-                    fclose(datafile); 
+                    fclose(pR); 
                     continue;
                 }
-                rewind(datafile);
+                rewind(pR);
 
                 int nameID = 1; char nameextract[100] = "";
                 int uidID = 0; char UIDextract[100] = "";
@@ -1568,7 +1574,7 @@ static inline int PCS_Protocol() {
                 int currentID;
                 char tempValue[100];
 
-                while (fgets(line, sizeof(line), datafile)) {
+                while (fgets(line, sizeof(line), pR)) {
                     if (sscanf(line, "%d| %[^\n]", &currentID, tempValue) == 2) {
                         switch (currentID) {
                             case 0: strcpy(UIDextract, tempValue); break;
@@ -1582,7 +1588,7 @@ static inline int PCS_Protocol() {
                         }
                     }
                 }
-                fclose(datafile);
+                fclose(pR);
                 
                 printf( "%s"  "===========[-USER-DATA-]===========\n"  "%s", ACCENT_C, MAIN_C);
                 printf("[NAME] %s\n", nameextract);
@@ -1597,19 +1603,48 @@ static inline int PCS_Protocol() {
                 printf( "%s"  "===================================\n"  "%s", ACCENT_C, MAIN_C);
                 printf("[LAST SYNC] %s\n", lastsyncextract);
                 printf( "%s"  "===================================\n"  "%s", ACCENT_C, MAIN_C);
-            } else if (strstr(text, themeswitchID) != NULL) { //switch themes
-                int targetthemeID;
+            } else if (strstr(userInput, themeswitchID) != NULL) { //switch themes
 				show_theme_menu();
 
 				if (scanf("%d", &targetthemeID) == 1) {
                     while(getchar() != '\n');
                     rectified = 3;
-                    if (targetthemeID < 0 || targetthemeID > 8) {
-                        printf("\n%s\aSYNTAX ERROR: Invalid Protocol ID. Operation Aborted.%s\n", ERR_C, MAIN_C);
+                    if (targetthemeID < 0 || targetthemeID > 9) {
+                        printf("%s\aSYNTAX ERROR: Invalid Protocol ID. Operation Aborted.%s\n", ERR_C, MAIN_C);
 					} else if (targetthemeID == 0) {
                         printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
+                    } else if (targetthemeID == 9) {
+                        int targetactionID;
+                        show_custom_theme_menu();
+
+                        if (scanf("%d", &targetactionID) == 1) {
+                            if (targetactionID < 0 || targetactionID > 2) {
+                                printf("%s\aSYNTAX ERROR: Invalid Protocol ID. Operation Aborted.%s\n", ERR_C, MAIN_C);
+					        } if (targetactionID == 1) {
+                                while(getchar() != '\n');
+                                load_configured_theme();
+
+                                if (continueFlag) continue;
+                                if (breakFlag) break;
+                            } else if (targetactionID == 2) {
+                                while(getchar() != '\n');
+                                new_configured_theme();
+
+                                if (continueFlag) continue;
+                                if (breakFlag) break;
+                            } else if (targetactionID == 0) {
+                                while(getchar() != '\n');
+                                printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
+                                rectified = 0;
+                                continue;
+                            }
+                        } else {
+                            while(getchar() != '\n');
+                            rectified = 0;
+                            printf( "%s" "\aTRACE ERROR: Target ID null. Re-input valid identifier for Grid processing.\n"  "%s", ERR_C, MAIN_C);
+                        }
                     } else {
-                        char *filePath = DATA_PATH "pcs-user-data.txt";
+                        char *filePath = DATA_PATH "pcs-themes.txt";
 						char *tempPath = DATA_PATH "temp.txt";
 
 						FILE *pR = fopen(filePath, "r");
@@ -1623,19 +1658,19 @@ static inline int PCS_Protocol() {
                         rewind(pR);
 
 						bool found = false;
-						char bufferread[500] = "";
+						char bufferRead[500] = "";
 
 						if (pR == NULL || pT == NULL) {
 							printf("%s\aCRITICAL ERROR: AccelX Sector Unreachable. Unable to establish a handshake with the database.\n%s", ERR_C, MAIN_C);
 							if (pR) fclose(pR);
 							if (pT) fclose(pT);
 						} else {
-							while (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
-								if (!found && strncmp(bufferread, "8|", 2) == 0) {
+							while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
+								if (!found && strncmp(bufferRead, "0|", 2) == 0) {
 									found = true;
-									fprintf(pT, "8| %d\n", targetthemeID);
+									fprintf(pT, "0| %d\n", targetthemeID);
 								} else {
-									fprintf(pT, "%s", bufferread);
+									fprintf(pT, "%s", bufferRead);
 								}
 							}
 
@@ -1653,7 +1688,6 @@ static inline int PCS_Protocol() {
 
 									printf("\n%sRebooting...", ACCENT_C);
 									wait_seconds(1);
-                                    
 									break;
 								}
 							} else {
@@ -1667,12 +1701,12 @@ static inline int PCS_Protocol() {
                     rectified = 0;
                     printf( "%s" "\aTRACE ERROR: Target ID null. Re-input valid identifier for Grid processing.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, rectifID) != NULL) { //full system purge
+            } else if (strstr(userInput, rectifID) != NULL) { //full system purge
                 char timestamp[30];
                 time_t now = time(NULL);
                 struct tm *t = localtime(&now);
                 strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", t);
-                char bufferread[500] = "";
+                char bufferRead[500] = "";
 
                 rectified = 2;
 
@@ -1684,7 +1718,7 @@ static inline int PCS_Protocol() {
                 scanf(" %c", &confirm);
 
                 if (confirm == 'Y' || confirm == 'y') {
-                    char sign1 = '%';
+                    char sign = '%';
                     while(getchar() != '\n');
 
                     wait_seconds(1);
@@ -1725,16 +1759,15 @@ static inline int PCS_Protocol() {
 				    fprintf(pT, "0| %s\n", userHexID);
 				    fprintf(pT, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
 				    fprintf(pT, "7| %s\n", timestamp);
-				    fprintf(pT, "8| 1\n");
 
-				    while (fgets(bufferread, sizeof(bufferread), pR) != NULL) {
+				    while (fgets(bufferRead, sizeof(bufferRead), pR) != NULL) {
 					    int prefix = -1;
-					    if (sscanf(bufferread, "%d|", &prefix) == 1) {
+					    if (sscanf(bufferRead, "%d|", &prefix) == 1) {
 						    if (prefix >= 0 && prefix <= 8) {
 							    continue; 
 						    }
 					    }
-					    fprintf(pT, "%s", bufferread);
+					    fprintf(pT, "%s", bufferRead);
 				    }
 
 				    fclose(pR);
@@ -1743,9 +1776,25 @@ static inline int PCS_Protocol() {
 				    remove(DATA_PATH "pcs-user-data.txt");
 				    rename(DATA_PATH "temp.txt", DATA_PATH "pcs-user-data.txt");
 
+				    FILE *pR = fopen(DATA_PATH "pcs-themes.txt", "w");
+
+				    if (pR == NULL) {
+					    printf("CRITICAL ERROR: File access denied.\n");
+					    continue;
+				    }
+
+				    fprintf(pR, "Set Theme\n0| 1\n\n");
+                    fprintf(pR, "Main Color\nhex1| #8a8a8a\n\n");
+                    fprintf(pR, "Accent Color\nhex2| #ffffff\n\n");
+                    fprintf(pR, "Success Color\nhex3| #47c977\n\n");
+                    fprintf(pR, "Error Color\nhex4| #b5002a\n\n");
+                    fprintf(pR, "Background Color\nhex5| #070707\n");
+
+				    fclose(pR);
+
                     showdots(); wait_seconds(2); printf("\x1B[2J\x1B[H");
                     printf("System Rectification Status: "); wait_seconds(3);
-                    printf("100%c complete.\n\n", sign1); wait_seconds(2);
+                    printf("100%c complete.\n\n", sign); wait_seconds(2);
                     printf("Rebooting System"); showdots(); wait_seconds(3);
                     printf("\x1B[2J\x1B[H"); wait_seconds(1);
 
@@ -1755,10 +1804,10 @@ static inline int PCS_Protocol() {
                     printf( "%s" "OPERATION ABORTED: User intervention detected. Rectification terminated. Data integrity preserved.\n"  "%s", ERR_C, MAIN_C);
                     rectified = 0;
                 }
-            } else if (strstr(text, purgearchivesID) != NULL) { //purge all saves in archives
+            } else if (strstr(userInput, purgearchivesID) != NULL) { //purge all saves in archives
                 int targetarchiveID;
                 show_archives_menu();
-                char targetarchivename[50] = "";
+                char targetarchiveName[50] = "";
 
                 if (scanf("%d", &targetarchiveID) == 1) {
                     
@@ -1768,20 +1817,19 @@ static inline int PCS_Protocol() {
 					} else if (targetarchiveID == 0) {
                         printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
                     } else {
-                        char YorN[10] = "";
                         printf("%sAre you sure you want to commit this action? This cannot be undone. Y/N: ", ERR_C);
-                        fgets(YorN, sizeof(YorN), stdin);
-                        YorN[strcspn(YorN, "\n")] = '\0';
+                        char confirm;
+                        scanf(" %c", &confirm);
 
-                        if (strstr(YorN, "Y") != NULL || strstr(YorN, "y") != NULL) {
+                        if (confirm == 'Y' || confirm == 'y') {
                             if (targetarchiveID == 1) {
                                 char *filePath1 = DATA_PATH "pcs-archive-tasks.txt";
                                 FILE *pR1 = fopen(filePath1, "w"); fclose(pR1);
-                                strcpy(targetarchivename, "tasks");
+                                strcpy(targetarchiveName, "tasks");
                             } else if (targetarchiveID == 2) {
                                 char *filePath2 = DATA_PATH "pcs-archive-logs.txt";
                                 FILE *pR2 = fopen(filePath2, "w"); fclose(pR2);
-                                strcpy(targetarchivename, "logs");
+                                strcpy(targetarchiveName, "logs");
                             }
                             printf( "%s" "\nSYSTEM MAINTENANCE: Executing Sector Purge"  "%s", ERR_C, MAIN_C);
                             wait_seconds(0.8);
@@ -1792,9 +1840,9 @@ static inline int PCS_Protocol() {
                             printf( "%s" ".\n"  "%s", ERR_C, MAIN_C);
                             wait_seconds(0.8);
 
-                            printf( "%s"">>> DATA STREAM CLEARED: 0x00h bits returned to the Grid.\n"  "%s", SUCCESS_C, MAIN_C);
+                            printf( "%s"" >>> DATA STREAM CLEARED: 0x00h bits returned to the Grid.\n"  "%s", SUCCESS_C, MAIN_C);
                             wait_seconds(0.8);
-                            printf( "%s" "\nPROTOCOL COMPLETE: Archived %s data stream has been fully de-materialized.\n"  "%s", SUCCESS_C, targetarchivename, MAIN_C);
+                            printf( "%s" "\nPROTOCOL COMPLETE: Archived %s data stream has been fully de-materialized.\n"  "%s", SUCCESS_C, targetarchiveName, MAIN_C);
                         } else {
                             printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
                         }
@@ -1802,7 +1850,7 @@ static inline int PCS_Protocol() {
                 } else {
                     printf( "%s" "\aTRACE ERROR: Target ID null. Re-input valid identifier for Grid processing.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, seearchivesID) != NULL) { //see available archived dates
+            } else if (strstr(userInput, seearchivesID) != NULL) { //see available archived dates
                 int targetarchiveID;
                 show_archives_menu();
 
@@ -1814,18 +1862,18 @@ static inline int PCS_Protocol() {
                         printf( "%s" "OPERATION ABORTED: User intervention detected. Task sequence terminated.\n"  "%s", ERR_C, MAIN_C);
                     } else {
                         int foundCount = 0;
-					    char buffer[512] = "";
-                        FILE *ptR1 = fopen(DATA_PATH "pcs-archive-tasks.txt", "r");
-                        FILE *ptR2 = fopen(DATA_PATH "pcs-archive-logs.txt", "r");
+					    char bufferRead[500] = "";
+                        FILE *pR1 = fopen(DATA_PATH "pcs-archive-tasks.txt", "r");
+                        FILE *pR2 = fopen(DATA_PATH "pcs-archive-logs.txt", "r");
 
                         if (targetarchiveID == 1) {
-                            while (fgets(buffer, sizeof(buffer), ptR1) != NULL) {
-						        if (strstr(buffer, "0|") == buffer) {
+                            while (fgets(bufferRead, sizeof(bufferRead), pR1) != NULL) {
+						        if (strstr(bufferRead, "0|") == bufferRead) {
 							        if (foundCount == 0) {
 								        printf("\n%s====[-ARCHIVED-GRID-OBJECTIVES-]=====%s\n", ACCENT_C, MAIN_C);
 							        }
 							        foundCount++;
-							        printf("%s%s", MAIN_C, buffer);
+							        printf("%s%s", MAIN_C, bufferRead);
 						        }
 					        }
 
@@ -1833,13 +1881,13 @@ static inline int PCS_Protocol() {
 						        printf("%s\aERROR: Data stream returned 'NULL'. No protected data found in archive sectors.", ERR_C);
 					        }
                         } else if (targetarchiveID == 2) {
-                            while (fgets(buffer, sizeof(buffer), ptR2) != NULL) {
-						        if (strstr(buffer, "0|") == buffer) {
+                            while (fgets(bufferRead, sizeof(bufferRead), pR2) != NULL) {
+						        if (strstr(bufferRead, "0|") == bufferRead) {
 							        if (foundCount == 0) {
 								        printf("\n%s====[-ARCHIVED-GRID-LOGS-]=====%s\n", ACCENT_C, MAIN_C);
 							        }
 							        foundCount++;
-							        printf("%s%s", MAIN_C, buffer);
+							        printf("%s%s", MAIN_C, bufferRead);
 						        }
 					        }
 
@@ -1847,39 +1895,39 @@ static inline int PCS_Protocol() {
 						        printf("%s\aERROR: Data stream returned 'NULL'. No protected data found in archive sectors.", ERR_C);
 					        }
                         }
-                        fclose(ptR1);
-                        fclose(ptR2);
+                        fclose(pR1);
+                        fclose(pR2);
                     }
                 } else {
                     printf( "%s" "\aTRACE ERROR: Target ID null. Re-input valid identifier for Grid processing.\n"  "%s", ERR_C, MAIN_C);
                 }
-            } else if (strstr(text, repairID) != NULL) { //scans for missing files and creates new one
+            } else if (strstr(userInput, repairID) != NULL) { //scans for missing files and creates new one
                 int repaired = 0;
                 int scanned = 1;
-                FILE *Path = NULL; 
-                char *filename = NULL; 
+                FILE *path = NULL; 
+                char *fileName = NULL; 
 
                 while (1) {
                     switch (scanned) {
-                        case 1: filename = DATA_PATH "pcs-tasks.txt"; break;
-                        case 2: filename = DATA_PATH "pcs-archive-tasks.txt"; break;
-                        case 3: filename = DATA_PATH "pcs-logs.txt"; break;
-                        case 4: filename = DATA_PATH "pcs-archive-logs.txt"; break;
-                        case 5: filename = DATA_PATH "pcs-todo.txt"; break;
-                        default: filename = NULL; break;
+                        case 1: fileName = DATA_PATH "pcs-tasks.txt"; break;
+                        case 2: fileName = DATA_PATH "pcs-archive-tasks.txt"; break;
+                        case 3: fileName = DATA_PATH "pcs-logs.txt"; break;
+                        case 4: fileName = DATA_PATH "pcs-archive-logs.txt"; break;
+                        case 5: fileName = DATA_PATH "pcs-todo.txt"; break;
+                        default: fileName = NULL; break;
                     }
 
-                    if (scanned >= 1 && scanned <= 5 && filename != NULL) {
-                        Path = fopen(filename, "r"); 
+                    if (scanned >= 1 && scanned <= 5 && fileName != NULL) {
+                        path = fopen(fileName, "r"); 
 
-                        if (Path == NULL) {
-                            Path = fopen(filename, "w");
-                            if (Path != NULL) {
-                                fclose(Path);
+                        if (path == NULL) {
+                            path = fopen(fileName, "w");
+                            if (path != NULL) {
+                                fclose(path);
                                 repaired++; 
                             }
                         } else {
-                            fclose(Path);
+                            fclose(path);
                         }
                         scanned++; 
                     } else {
@@ -1887,49 +1935,87 @@ static inline int PCS_Protocol() {
                     }
                 }
 
-                filename = DATA_PATH "pcs-user-data.txt";
-                Path = fopen(filename, "r");
+                fileName = DATA_PATH "pcs-user-data.txt";
+                path = fopen(fileName, "r");
 
-                if (Path == NULL) {
-                    Path = fopen(filename, "w");
+                if (path == NULL) {
+                    path = fopen(fileName, "w");
 
-                    if (Path != NULL) {
+                    if (path != NULL) {
                         char timestamp[30];
                         time_t now = time(NULL);
                         strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
-                        fprintf(Path, "0| %s\n", userHexID);
-                        fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
-                        fprintf(Path, "7| %s\n", timestamp);
-                        fprintf(Path, "8| 1\n");
+                        fprintf(path, "0| %s\n", userHexID);
+                        fprintf(path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
+                        fprintf(path, "7| %s\n", timestamp);
                         
-                        fclose(Path);
+                        fclose(path);
                         repaired++; 
                     }
                 } else {
-                    fseek(Path, 0, SEEK_END);
-                    if (ftell(Path) == 0) {
-                        fclose(Path);
-                        Path = fopen(filename, "w");
+                    fseek(path, 0, SEEK_END);
+                    if (ftell(path) == 0) {
+                        fclose(path);
+                        path = fopen(fileName, "w");
 
-                        if (Path != NULL) {
+                        if (path != NULL) {
                             char timestamp[30];
                             time_t now = time(NULL);
                             strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", localtime(&now));
 
-                            fprintf(Path, "0| %s\n", userHexID);
-                            fprintf(Path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
-                            fprintf(Path, "7| %s\n", timestamp);
-                            fprintf(Path, "8| 1\n");
+                            fprintf(path, "0| %s\n", userHexID);
+                            fprintf(path, "1| Operator\n2| Country\n3| MM/DD/YYYY\n4| Gender\n5| Height\n6| Weight\n");
+                            fprintf(path, "7| %s\n", timestamp);
                             
-                            fclose(Path);
+                            fclose(path);
                             repaired++; 
                         }
                     } else {
-                        fclose(Path);
+                        fclose(path);
                     }
                 } 
 
+                fileName = DATA_PATH "pcs-themes.txt";
+                path = fopen(fileName, "r");
+
+                if (path == NULL) {
+                    path = fopen(fileName, "w");
+
+                    if (path != NULL) {
+
+                        fprintf(path, "Set Theme\n0| 1\n\n");
+                        fprintf(path, "Main Color\nhex1| #8a8a8a\n\n");
+                        fprintf(path, "Accent Color\nhex2| #ffffff\n\n");
+                        fprintf(path, "Success Color\nhex3| #47c977\n\n");
+                        fprintf(path, "Error Color\nhex4| #b5002a\n\n");
+                        fprintf(path, "Background Color\nhex5| #070707\n");
+                        
+                        fclose(path);
+                        repaired++; 
+                    }
+                } else {
+                    fseek(path, 0, SEEK_END);
+                    if (ftell(path) == 0) {
+                        fclose(path);
+                        path = fopen(fileName, "w");
+
+                        if (path != NULL) {
+
+                            fprintf(path, "Set Theme\n0| 1\n\n");
+                            fprintf(path, "Main Color\nhex1| #8a8a8a\n\n");
+                            fprintf(path, "Accent Color\nhex2| #ffffff\n\n");
+                            fprintf(path, "Success Color\nhex3| #47c977\n\n");
+                            fprintf(path, "Error Color\nhex4| #b5002a\n\n");
+                            fprintf(path, "Background Color\nhex5| #070707\n");
+                            
+                            fclose(path);
+                            repaired++; 
+                        }
+                    } else {
+                        fclose(path);
+                    }
+                } 
                 printf("%sSYSTEM MAINTENANCE: Executing sector re-integration", ERR_C);
                 wait_seconds(0.8);
                 printf( "%s" "."  "%s", ERR_C, MAIN_C);
@@ -1939,34 +2025,23 @@ static inline int PCS_Protocol() {
                 printf( "%s" ".\n"  "%s", ERR_C, MAIN_C);
                 wait_seconds(1.5);
                 printf("%sPROTOCOL SUCCESS: Cycle complete, %d total sectors re-integrated.\n%s", SUCCESS_C, repaired, MAIN_C);
-            } else if (strstr(text, flushID) != NULL) { //soft reboot
+            } else if (strstr(userInput, flushID) != NULL) { //soft reboot
                 rectified = 3;
                 break;
-            } else if (strstr(text, helpID) != NULL) { //help
+            } else if (strstr(userInput, helpID) != NULL) { //help
                 gridhelpcommands();
-            } else if (strstr(text, exitprogID) != NULL) { //exit
+            } else if (strstr(userInput, exitprogID) != NULL) { //exit
                 rectified = 0;
                 printf( "%s" "Connection Severed... Program Derezzed." COLOR_RESET, ERR_C);
-                printf("\a");
-                wait_seconds(0.5);
-                printf("\a");
-                wait_seconds(0.5);
-                printf("\a");
-                wait_seconds(0.5);
+                printf("\a"); wait_seconds(0.5);
+                printf("\a"); wait_seconds(0.5);
+                printf("\a"); wait_seconds(0.5);
+                clear_text();
                 printf("\x1B[2J\x1B[H");
                 exit(0);
             } else {
-                printf( "%s" "\aERROR: '%s' is not recognized as an internal or external command, operable program or batch file by the grid.\n"  "%s", ERR_C, text, MAIN_C);
+                printf( "%s" "\aERROR: '%s' is not recognized as an internal or external command, operable program or batch file by the grid.\n"  "%s", ERR_C, userInput, MAIN_C);
             }
         }
-    }
-
-int main() {
-    #ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-    #endif
-
-    while (1) {
-        PCS_Protocol();
     }
 }

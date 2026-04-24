@@ -13,23 +13,23 @@
 #endif
 #include "pcs-themes.h"
 
-    char text[1000];
+    char userInput[10000];
 
     //commands
-    char addtaskID[100] = "pcs add task";
-    char newtasklistID[100] = "pcs new task list";
-    char completetaskID[100] = "pcs resolve task";
-    char resettaskID[100] = "pcs reset task";
-    char seetasklistID[100] = "pcs see task";
-    char deletetaskID[100] = "pcs delete task";
-    char retrievetaskID[100] = "pcs retrieve task list";
+    char addtaskID[50] = "pcs add task";
+    char newtasklistID[50] = "pcs new task list";
+    char resolvetaskID[50] = "pcs resolve task";
+    char resettaskID[50] = "pcs reset task";
+    char seetasklistID[50] = "pcs see task";
+    char deletetaskID[50] = "pcs delete task";
+    char retrievetaskID[50] = "pcs retrieve task list";
 
-    char addtodoID[100] = "pcs add todo";
-    char seetodoID[100] = "pcs see todo";
-    char completetodoID[100] = "pcs resolve todo";
-    char resettodoID[100] = "pcs reset todo";
-    char deletetodoID[100] = "pcs delete todo";
-    char purgetodoID[100] = "pcs purge todo";
+    char addtodoID[50] = "pcs add todo";
+    char seetodoID[50] = "pcs see todo";
+    char resolvetodoID[50] = "pcs resolve todo";
+    char resettodoID[50] = "pcs reset todo";
+    char deletetodoID[50] = "pcs delete todo";
+    char purgetodoID[50] = "pcs purge todo";
     //todo features
         //categories
         char tcWork[20] = "work";
@@ -42,31 +42,31 @@
         char tpHigh[20] = "high";
         char tpUrgent[20] = "urgent";
 
-    char newlogID[100] = "pcs new log";
-    char addlogID[100] = "pcs add log";
-    char seelogID[100] = "pcs see log";
-    char deletelogID[100] = "pcs delete log";
-    char retrievelogID[100] = "pcs retrieve log";
+    char newlogID[50] = "pcs new log";
+    char addlogID[50] = "pcs add log";
+    char seelogID[50] = "pcs see log";
+    char deletelogID[50] = "pcs delete log";
+    char retrievelogID[50] = "pcs retrieve log";
 
-    char seearchivesID[100] = "pcs see archives";
-    char purgearchivesID[100] = "pcs purge archives";
+    char seearchivesID[50] = "pcs see archives";
+    char purgearchivesID[50] = "pcs purge archives";
 
-    char helpID[100] = "pcs help";
-    char exitprogID[100] = "pcs exit";
+    char helpID[50] = "pcs help";
+    char exitprogID[50] = "pcs exit";
 
-    char seeuserdataID[100] = "pcs see user data";
-    char edituserdataID[100] = "pcs edit user data";
+    char seeuserdataID[50] = "pcs see user data";
+    char edituserdataID[50] = "pcs edit user data";
 
-    char repairID[100] = "pcs repair";
+    char repairID[50] = "pcs repair";
 
-    char rectifID[100] = "pcs rectif"; //full system purge
+    char rectifID[50] = "pcs rectif"; //full system purge
 
-    char themeswitchID[100] = "pcs themes";
+    char themeswitchID[50] = "pcs themes";
 
-    char flushID[100] = "pcs flush";
+    char flushID[50] = "pcs flush";
 
     //misc
-    char welcomeMsg[100] = "";
+    char welcomeMsg[50] = "";
     char username[20] = "";
 
     //UID
@@ -77,7 +77,16 @@
     //Theme
     Theme* theme;
     int themeID;
-    char linetheme[500];
+
+    char inputColor[30] = "";
+    char mainColor [30] = "";
+    char accentColor [30] = "";
+    char successColor [30] = "";
+    char errorColor [30] = "";
+    char backgroundColor [30] = "";
+    int targetthemeID;
+    bool continueFlag = false;
+    bool breakFlag = false;
 
     int rectified;
 
