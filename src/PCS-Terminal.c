@@ -1776,21 +1776,21 @@ int main() {
 				    remove(DATA_PATH "pcs-user-data.txt");
 				    rename(DATA_PATH "temp.txt", DATA_PATH "pcs-user-data.txt");
 
-				    FILE *pR = fopen(DATA_PATH "pcs-themes.txt", "w");
+				    FILE *pTh = fopen(DATA_PATH "pcs-themes.txt", "w");
 
-				    if (pR == NULL) {
+				    if (pTh == NULL) {
 					    printf("CRITICAL ERROR: File access denied.\n");
 					    continue;
 				    }
 
-				    fprintf(pR, "Set Theme\n0| 1\n\n");
-                    fprintf(pR, "Main Color\nhex1| #8a8a8a\n\n");
-                    fprintf(pR, "Accent Color\nhex2| #ffffff\n\n");
-                    fprintf(pR, "Success Color\nhex3| #47c977\n\n");
-                    fprintf(pR, "Error Color\nhex4| #b5002a\n\n");
-                    fprintf(pR, "Background Color\nhex5| #070707\n");
+				    fprintf(pTh, "Set Theme\n0| 1\n\n");
+                    fprintf(pTh, "Main Color\nhex1| #8a8a8a\n\n");
+                    fprintf(pTh, "Accent Color\nhex2| #ffffff\n\n");
+                    fprintf(pTh, "Success Color\nhex3| #47c977\n\n");
+                    fprintf(pTh, "Error Color\nhex4| #b5002a\n\n");
+                    fprintf(pTh, "Background Color\nhex5| #070707\n");
 
-				    fclose(pR);
+				    fclose(pTh);
 
                     showdots(); wait_seconds(2); printf("\x1B[2J\x1B[H");
                     printf("System Rectification Status: "); wait_seconds(3);
