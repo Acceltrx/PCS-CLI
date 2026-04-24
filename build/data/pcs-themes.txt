@@ -1,5 +1,5 @@
 Set Theme
-0| 9
+0| 1
 
 Main Color
 hex1| #8a8a8a
