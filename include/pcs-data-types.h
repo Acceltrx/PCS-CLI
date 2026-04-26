@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
 #ifdef _WIN32
@@ -13,7 +14,8 @@
 #endif
 #include "pcs-themes.h"
 
-    char userInput[10000];
+    #define USER_INPUT_SIZE 10000
+    char *userInput;
 
     //commands
     char addtaskID[50] = "pcs add task";

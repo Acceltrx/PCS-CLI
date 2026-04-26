@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🟢 ACCELX://PERSONAL COMMAND SYSTEM (PCS)
-**[VERSION 1.2.0] — CORE INITIALIZED**
+**[VERSION 1.2.1] — CORE INITIALIZED**
 
 </div>
 
@@ -23,7 +23,7 @@ Built for speed, reliability, and high-contrast terminal aesthetics. Designed by
 
 ---
 
-## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.2.0 | The Refactor & Personalization Update]
+## 🚀 SYSTEM ENHANCEMENTS [PCS-CLI v1.2.1 | The Refactor & Personalization Update]
 
 - **Core Architecture:** Compacted logic across modules for faster execution and smaller binary size.
 

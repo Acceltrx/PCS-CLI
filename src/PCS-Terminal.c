@@ -21,12 +21,14 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     #endif
 
+    userInput = malloc(USER_INPUT_SIZE * sizeof(char));
+
     while (1) {
         PCS_Boot_Protocol();
 
         while (1) {
             printf("\n%sACCELX://SYSTEM/SECTOR_01>%s", ACCENT_C, MAIN_C);
-            fgets(userInput, sizeof(userInput), stdin);
+            fgets(userInput, USER_INPUT_SIZE, stdin);
             userInput[strcspn(userInput, "\n")] = '\0';
 
             if(strstr(userInput, addtaskID) != NULL) { //add task 
@@ -2038,6 +2040,7 @@ int main() {
                 printf("\a"); wait_seconds(0.5);
                 clear_text();
                 printf("\x1B[2J\x1B[H");
+                free(userInput);
                 exit(0);
             } else {
                 printf( "%s" "\aERROR: '%s' is not recognized as an internal or external command, operable program or batch file by the grid.\n"  "%s", ERR_C, userInput, MAIN_C);
