@@ -2041,6 +2041,7 @@ int main() {
                 clear_text();
                 printf("\x1B[2J\x1B[H");
                 free(userInput);
+                userInput = NULL;
                 exit(0);
             } else {
                 printf( "%s" "\aERROR: '%s' is not recognized as an internal or external command, operable program or batch file by the grid.\n"  "%s", ERR_C, userInput, MAIN_C);
